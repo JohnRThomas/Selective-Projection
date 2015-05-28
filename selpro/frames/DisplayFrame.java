@@ -1,33 +1,23 @@
 package selpro.frames;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import javax.swing.JFrame;
+
 import org.bytedeco.javacv.CanvasFrame;
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.FrameGrabber;
-import org.bytedeco.javacv.OpenCVFrameGrabber;
 
-public class DisplayFrame extends CanvasFrame implements Runnable{
+public class DisplayFrame extends CanvasFrame{
 	private static final long serialVersionUID = 0L;
-	
-	public DisplayFrame(String title) {
+		public DisplayFrame(String title) {
 		super(title);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.addWindowListener(new WindowAdapter(){
+			@Override
+			public void windowClosed(WindowEvent e) {
+				System.exit(0);
+			}
+		});
 		setSize(640, 480);
-	}
-
-	@Override
-	public void run(){
-	    FrameGrabber grabber = new OpenCVFrameGrabber(0); 
-	    try {
-	        grabber.start();
-	        Frame img;
-	        while (true) {
-	            img = grabber.grab();
-	            if (img != null) {
-	                showImage(img);
-	            }
-	        }
-	    } catch (FrameGrabber.Exception e) {
-	    	e.printStackTrace();
-	    }
-
 	}	
 }

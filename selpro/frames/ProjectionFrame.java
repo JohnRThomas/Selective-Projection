@@ -19,6 +19,8 @@ public class ProjectionFrame extends JFrame{
 	
 	public ProjectionFrame(String title) {
 		super(title);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
 		ProjectionFrame frame = this;
 		setSize(640,480);
         setFocusTraversalKeysEnabled(false);

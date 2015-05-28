@@ -1,30 +1,34 @@
 package selpro.boot;
 
-import java.awt.Color;
-import java.awt.Graphics;
+import javax.swing.UIManager;
 
+import selpro.CameraReader;
+import selpro.frames.ControlFrame;
 import selpro.frames.DisplayFrame;
-import selpro.frames.Drawable;
 import selpro.frames.ProjectionFrame;
 
 public class Main {
-	public static Drawable drawer = new Drawable(){
-		@Override
-		public void draw(Graphics g, int width, int height) {
-			g.setColor(Color.RED);
-			g.fillRect(0, 0, width, height);
-		}
-		
-	};
-	
+
 	public static void main(String args[]){
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		CameraReader camera = new CameraReader();	
 		ProjectionFrame projectionFrame = new ProjectionFrame("Projector Output");
-		projectionFrame.setVisible(true);
-		projectionFrame.setDrawer(drawer);
-		
 		DisplayFrame displayFrame = new DisplayFrame("Camera");
-		displayFrame.setLocation(projectionFrame.getWidth()+projectionFrame.getX(), projectionFrame.getY());
+		ControlFrame controlFrame = new ControlFrame("Control Panel", projectionFrame, displayFrame);
+		camera.addFrameListener(controlFrame);
+		controlFrame.setVisible(true);
+
+		displayFrame.setLocation(controlFrame.getWidth()+controlFrame.getX(), controlFrame.getY());
 		displayFrame.setVisible(true);
-		new Thread(displayFrame).start();
+
+		projectionFrame.setLocation(displayFrame.getWidth()+displayFrame.getX(), displayFrame.getY());
+		projectionFrame.setDrawer(controlFrame);
+		projectionFrame.setVisible(true);
+
 	}
 }
