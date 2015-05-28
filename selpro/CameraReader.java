@@ -8,7 +8,7 @@ import org.bytedeco.javacv.OpenCVFrameGrabber;
 
 public class CameraReader extends Thread{
 	private ArrayList<FrameListener> listeners = new ArrayList<FrameListener>();
-	private FrameGrabber grabber;
+	private volatile FrameGrabber grabber;
 	public CameraReader(){
 		grabber = new OpenCVFrameGrabber(0); 
 		try {
@@ -17,7 +17,6 @@ public class CameraReader extends Thread{
 		} catch (FrameGrabber.Exception e) {
 			e.printStackTrace();
 		}
-
 	}
 
 
@@ -45,5 +44,15 @@ public class CameraReader extends Thread{
 
 	public interface FrameListener{
 		public void processFrame(Frame img);
+	}
+	
+	public void changeGrabber(int c){
+		OpenCVFrameGrabber temp = new OpenCVFrameGrabber(c);
+		try {
+			temp.start();
+			grabber = temp;
+		} catch (FrameGrabber.Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

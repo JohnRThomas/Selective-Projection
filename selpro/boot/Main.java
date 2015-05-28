@@ -28,10 +28,7 @@ public class Main {
 		//Set where the camera callback send it's frames
 		camera.addFrameListener(controlFrame);
 		
-		//Set where the projector frame will draw from
-		projectionFrame.setDrawer(controlFrame);
-
-		//Show the frames and move them to their proper locations reletive to each other.
+		//Show the frames and move them to their proper locations relative to each other.
 		controlFrame.setVisible(true);
 		displayFrame.setLocation(controlFrame.getWidth()+controlFrame.getX(), controlFrame.getY());
 		displayFrame.setVisible(true);
