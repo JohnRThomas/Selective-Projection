@@ -10,7 +10,7 @@ public class CameraReader extends Thread{
 	private ArrayList<FrameListener> listeners = new ArrayList<FrameListener>();
 	private volatile FrameGrabber grabber;
 	public CameraReader(){
-		grabber = new OpenCVFrameGrabber(1); 
+		grabber = new OpenCVFrameGrabber(0); 
 		try {
 			grabber.start();
 			this.start();
