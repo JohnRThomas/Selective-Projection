@@ -31,17 +31,22 @@ import selpro.CameraReader;
 
 public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 	private static final long serialVersionUID = 0L;
+	
+	//Main variables
 	private ProjectionFrame projectionFrame;
 	private DisplayFrame displayFrame;
 	private OpenCVFrameConverter.ToIplImage converter = new OpenCVFrameConverter.ToIplImage();
 	private static CvScalar threshMin = cvScalar(0, 0, 0, 0);//BGR-A
 	private static CvScalar threshMax = cvScalar(255, 255, 255, 0);//BGR-A
-
+	private DrawState drawState = DrawState.CHECKER;
 	private Rect projectionBounds = null;
 	private IplImage projectionMask = null;
+	
+	//Control booleans
 	private boolean findProjection = false;
 	private boolean saveMask = false;
-	private DrawState drawState = DrawState.CHECKER;
+	private boolean whiteBackground = false;
+	private boolean saveInvertedMask = false;
 
 	public ControlFrame(String title, ProjectionFrame projectionFrame, DisplayFrame displayFrame) {
 		super(title);
@@ -69,7 +74,8 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 		panel.add(midPanel);
 		panel.add(botPanel);
 
-		JButton findProjection_btn = new JButton("Find Projection");
+
+		JButton findProjection_btn = new JButton("Find Projection (Black)");
 		findProjection_btn.addActionListener(new ActionListener() {
 
 			@Override
@@ -81,7 +87,26 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 				findProjection = true;
 			}
 		});
+		
+		JButton background_btn = new JButton("Use White Background");
+		background_btn.addActionListener(new ActionListener() {
 
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(((JButton)e.getSource()).getText().contains("White")){
+					((JButton)e.getSource()).setText("Use Black Background");
+					findProjection_btn.setText("Find Projection (White)");
+					whiteBackground = true;
+				}else{
+					((JButton)e.getSource()).setText("Use White Background");
+					findProjection_btn.setText("Find Projection (Black)");
+					whiteBackground = false;
+				}
+			}
+		});
+
+		
+		topPanel.add(background_btn);
 		topPanel.add(findProjection_btn);
 
 		JButton red_btn = new JButton("RED");
@@ -149,7 +174,18 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 		});
 
 		botPanel.add(applyMask_btn);
+		
+		JButton applyInvertedMask_btn = new JButton("Apply Inverted Mask");
+		applyInvertedMask_btn.addActionListener(new ActionListener() {
 
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				saveInvertedMask  = true;
+			}
+		});
+
+		botPanel.add(applyInvertedMask_btn);
+		
 		JButton clearMask_btn = new JButton("Clear Mask");
 		clearMask_btn.addActionListener(new ActionListener() {
 
@@ -231,25 +267,33 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 
 			//Threshold Filter
 			IplImage mask_ipl = opencv_core.cvCreateImage(opencv_core.cvGetSize(img_ipl), 8, 1);
-			opencv_core.cvInRangeS(gray_ipl, cvScalar(6), cvScalar(255), mask_ipl);
+			if(whiteBackground){
+				opencv_core.cvInRangeS(gray_ipl, cvScalar(160), cvScalar(255), mask_ipl);
+			}else{
+				opencv_core.cvInRangeS(gray_ipl, cvScalar(6), cvScalar(255), mask_ipl);
+			}
 			Mat final_mat = converter.convertToMat(converter.convert(mask_ipl));
 			opencv_core.bitwise_and(gray_mat, gray_mat, final_mat, converter.convertToMat(converter.convert(mask_ipl)));
 			gray_mat = final_mat;
 			displayFrame.showImage(converter.convert(gray_mat));
 			try {Thread.sleep(1000);} catch (InterruptedException e) {}
 
-			//equalize the contrast
-			opencv_imgproc.equalizeHist(gray_mat, gray_mat);
-			displayFrame.showImage(converter.convert(gray_mat));
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
-
+			//increase the contrast
+			if(!whiteBackground){
+				opencv_imgproc.equalizeHist(gray_mat, gray_mat);
+				displayFrame.showImage(converter.convert(gray_mat));
+				try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			}
+			
 			//Threshold Filter
-			gray_ipl = converter.convert(converter.convert(gray_mat));
-			mask_ipl = opencv_core.cvCreateImage(opencv_core.cvGetSize(img_ipl), 8, 1);
-			opencv_core.cvInRangeS(gray_ipl, cvScalar(10), cvScalar(255), mask_ipl);
-			gray_mat = converter.convertToMat(converter.convert(mask_ipl));
-			displayFrame.showImage(converter.convert(gray_mat));
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			if(!whiteBackground){
+				gray_ipl = converter.convert(converter.convert(gray_mat));
+				mask_ipl = opencv_core.cvCreateImage(opencv_core.cvGetSize(img_ipl), 8, 1);
+				opencv_core.cvInRangeS(gray_ipl, cvScalar(10), cvScalar(255), mask_ipl);
+				gray_mat = converter.convertToMat(converter.convert(mask_ipl));
+				displayFrame.showImage(converter.convert(gray_mat));
+				try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			}
 
 			//Edge Detection
 			Mat bw_mat = new Mat();
@@ -264,6 +308,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 
 			for(long i = 0; i < contours.size(); i++){
 				Mat tmp_mat = new Mat(contours.get(i));
+				
 				// Approximate contour with accuracy proportional to the contour perimeter
 				opencv_imgproc.approxPolyDP(tmp_mat, approx_mat, opencv_imgproc.arcLength(tmp_mat, true)*0.02, true);
 
@@ -298,8 +343,13 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			Mat cropped_mat = new Mat(mask_mat, projectionBounds);
 			projectionMask = converter.convertToIplImage(converter.convert(cropped_mat));
 			saveMask = false;
+		}else if(saveInvertedMask){
+			Mat cropped_mat = new Mat(mask_mat, projectionBounds);
+			opencv_core.bitwise_not(cropped_mat, cropped_mat);
+			projectionMask = converter.convertToIplImage(converter.convert(cropped_mat));
+			saveInvertedMask = false;
 		}
-		
+
 		Mat final_mat = converter.convertToMat(converter.convert(mask_ipl));
 		opencv_core.bitwise_and(img_mat, img_mat, final_mat, mask_mat);
 
@@ -343,7 +393,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 		}
 
 		Mat final_mat = new Mat(height, width, 16);
-		
+
 		if(projectionMask != null && projectionBounds != null){
 			//Resize the mask to the screen size, then AND it with the texture.
 			Mat mask_mat = converter.convertToMat(converter.convert(projectionMask));
