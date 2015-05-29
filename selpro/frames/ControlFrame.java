@@ -21,6 +21,7 @@ import org.bytedeco.javacpp.opencv_core.Mat;
 import org.bytedeco.javacpp.opencv_core.MatVector;
 import org.bytedeco.javacpp.opencv_core.Rect;
 import org.bytedeco.javacpp.opencv_core.Scalar;
+import org.bytedeco.javacpp.opencv_core.Size;
 import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_photo;
 import org.bytedeco.javacv.Frame;
@@ -36,8 +37,8 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 	private static CvScalar threshMin = cvScalar(0, 0, 0, 0);//BGR-A
 	private static CvScalar threshMax = cvScalar(255, 255, 255, 0);//BGR-A
 
-	private Mat projectionContour = null;
-	private Mat projectionMask = null;
+	private Rect projectionBounds = null;
+	private IplImage projectionMask = null;
 	private boolean findProjection = false;
 	private boolean saveMask = false;
 	private DrawState drawState = DrawState.CHECKER;
@@ -144,7 +145,6 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				saveMask = true;
-				drawState = DrawState.CHECKER;
 			}
 		});
 
@@ -274,7 +274,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 
 				// Number of vertices of polygonal curve
 				if (approx_mat.arrayHeight() == 4){
-					projectionContour = contours.get(i);
+					projectionBounds = opencv_imgproc.boundingRect(contours.get(i));
 					findProjection = false;
 				}
 			}
@@ -295,14 +295,16 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 
 		Mat mask_mat = converter.convertToMat(converter.convert(mask_ipl));
 		if(saveMask){
-			projectionMask = mask_mat;
+			Mat cropped_mat = new Mat(mask_mat, projectionBounds);
+			projectionMask = converter.convertToIplImage(converter.convert(cropped_mat));
+			saveMask = false;
 		}
+		
 		Mat final_mat = converter.convertToMat(converter.convert(mask_ipl));
 		opencv_core.bitwise_and(img_mat, img_mat, final_mat, mask_mat);
 
-		if(projectionContour != null){
-			Rect r = opencv_imgproc.boundingRect(projectionContour);
-			opencv_core.rectangle(final_mat, r, new Scalar(0,255,255,0));
+		if(projectionBounds != null){
+			opencv_core.rectangle(final_mat, projectionBounds, new Scalar(0,255,255,0));
 		}
 
 		displayFrame.showImage(converter.convert(final_mat));
@@ -342,18 +344,14 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 
 		Mat final_mat = new Mat(height, width, 16);
 		
-		if(projectionMask != null){
-			/*float[] srcCorners = new float[8];
-			float[] dstCorners= new float[8];
-			
-			CvMat affine_mat = new CvMat();
-			opencv_imgproc.cvGetAffineTransform(srcCorners, dstCorners, affine_mat);
-			
-			Mat mask_mat = new Mat(height, width, 16);
-			//projectionMask;
-			//opencv_imgproc.warpAffine(arg0, arg1, arg2, arg3);
-			opencv_core.bitwise_and(base_mat, base_mat, final_mat, mask_mat);*/
+		if(projectionMask != null && projectionBounds != null){
+			//Resize the mask to the screen size, then AND it with the texture.
+			Mat mask_mat = converter.convertToMat(converter.convert(projectionMask));
+			Mat final_mask_mat = new Mat();
+			opencv_imgproc.resize(mask_mat, final_mask_mat, new Size(width, height));			
+			opencv_core.bitwise_and(base_mat, base_mat, final_mat, final_mask_mat);
 		}else{
+			//And the image with itself and don't include the mask.
 			opencv_core.bitwise_and(base_mat, base_mat, final_mat);
 		}
 		projectionFrame.showImage(converter.convert(final_mat));
