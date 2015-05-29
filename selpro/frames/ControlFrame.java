@@ -350,11 +350,14 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			Mat final_mask_mat = new Mat();
 			opencv_imgproc.resize(mask_mat, final_mask_mat, new Size(width, height));			
 			opencv_core.bitwise_and(base_mat, base_mat, final_mat, final_mask_mat);
+			final_mask_mat.deallocate();
 		}else{
 			//And the image with itself and don't include the mask.
 			opencv_core.bitwise_and(base_mat, base_mat, final_mat);
 		}
 		projectionFrame.showImage(converter.convert(final_mat));
+		base_mat.deallocate();
+		final_mat.deallocate();
 	}
 
 	private enum DrawState{

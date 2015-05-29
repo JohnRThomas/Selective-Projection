@@ -10,7 +10,7 @@ public class CameraReader extends Thread{
 	private ArrayList<FrameListener> listeners = new ArrayList<FrameListener>();
 	private volatile FrameGrabber grabber;
 	public CameraReader(){
-		grabber = new OpenCVFrameGrabber(0); 
+		grabber = new OpenCVFrameGrabber(1); 
 		try {
 			grabber.start();
 			this.start();
@@ -26,8 +26,8 @@ public class CameraReader extends Thread{
 			Frame img;
 			while (true) {
 				img = grabber.grab();
-				if (img != null) {
-					for(FrameListener l : listeners){
+				for(FrameListener l : listeners){
+					if (img != null) {
 						l.processFrame(img);
 					}
 				}
@@ -35,7 +35,6 @@ public class CameraReader extends Thread{
 		} catch (FrameGrabber.Exception e) {
 			e.printStackTrace();
 		}
-
 	}			
 
 	public void addFrameListener(FrameListener l){
@@ -45,7 +44,7 @@ public class CameraReader extends Thread{
 	public interface FrameListener{
 		public void processFrame(Frame img);
 	}
-	
+
 	public void changeGrabber(int c){
 		OpenCVFrameGrabber temp = new OpenCVFrameGrabber(c);
 		try {
