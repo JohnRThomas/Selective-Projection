@@ -47,6 +47,8 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 	private boolean saveMask = false;
 	private boolean whiteBackground = false;
 	private boolean saveInvertedMask = false;
+	private boolean AA = false;
+	
 
 	public ControlFrame(String title, ProjectionFrame projectionFrame, DisplayFrame displayFrame) {
 		super(title);
@@ -174,6 +176,17 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 		});
 
 		botPanel.add(applyMask_btn);
+		
+		JButton applyMaskAA_btn = new JButton("Apply Mask with AA");
+		applyMaskAA_btn.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				AA = !AA;
+			}
+		});
+
+		botPanel.add(applyMaskAA_btn);
 		
 		JButton applyInvertedMask_btn = new JButton("Apply Inverted Mask");
 		applyInvertedMask_btn.addActionListener(new ActionListener() {
@@ -369,7 +382,10 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 
 		switch(drawState){
 		case CHECKER:
+			//Color in the background to be all white
 			opencv_core.rectangle(base_mat, new Rect(0, 0, width, height), new Scalar(255,255,255,0), opencv_core.CV_FILLED, 8, 0);
+			
+			//Draw 50x50px black squares to form the checkers.
 			for(int y = 0; y < height; y+=50){
 				for(int x = 0; x < width; x+=50){
 					if((x/10+y/10) % 2 == 1)opencv_core.rectangle(base_mat, new Rect(x, y, 50, 50), new Scalar(0,0,0,0), opencv_core.CV_FILLED, 8, 0);
@@ -395,17 +411,27 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 		Mat final_mat = new Mat(height, width, 16);
 
 		if(projectionMask != null && projectionBounds != null){
-			//Resize the mask to the screen size, then AND it with the texture.
+			//Resize the mask to the screen size.
 			Mat mask_mat = converter.convertToMat(converter.convert(projectionMask));
 			Mat final_mask_mat = new Mat();
-			opencv_imgproc.resize(mask_mat, final_mask_mat, new Size(width, height));			
+			opencv_imgproc.resize(mask_mat, final_mask_mat, new Size(width, height));
+			
+			//smooth filter the mask after the resize so it isn't jagged.
+			IplImage final_mask_ipl = converter.convert(converter.convert(final_mask_mat));
+			if(AA)opencv_imgproc.cvSmooth(final_mask_ipl, final_mask_ipl, opencv_imgproc.CV_MEDIAN, 13, 0, 0.0, 0.0);
+			final_mask_mat = converter.convertToMat(converter.convert(final_mask_ipl));
+			
+			//Apply the mask to the projection area
 			opencv_core.bitwise_and(base_mat, base_mat, final_mat, final_mask_mat);
 			final_mask_mat.deallocate();
 		}else{
 			//And the image with itself and don't include the mask.
 			opencv_core.bitwise_and(base_mat, base_mat, final_mat);
 		}
+		//Show the image on the projector
 		projectionFrame.showImage(converter.convert(final_mat));
+		
+		//Clean up some memory.
 		base_mat.deallocate();
 		final_mat.deallocate();
 	}
