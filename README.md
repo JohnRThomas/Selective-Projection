@@ -2,4 +2,5 @@ This project aims to allow for a projecter and a webcam to project selectively o
 
 These images demonstrate the effect:
 http://i.imgur.com/fpVdCmF.jpg
+
 http://i.imgur.com/fiLLCra.jpg
