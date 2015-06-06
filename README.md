@@ -5,3 +5,5 @@ These images demonstrate the effect:
 http://i.imgur.com/fpVdCmF.jpg
 
 http://i.imgur.com/fiLLCra.jpg
+
+[Download and reference JavaCV and JavaCPP libraries.](https://github.com/bytedeco/javacv)
