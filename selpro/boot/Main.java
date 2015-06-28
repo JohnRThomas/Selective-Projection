@@ -27,8 +27,9 @@ public class Main {
 		camera.addFrameListener(controlFrame);
 		
 		//Show the frames and move them to their proper locations relative to each other.
+		projectionFrame.setVisible(true);
 		controlFrame.setVisible(true);
 		//projectionFrame.setLocation(controlFrame.getWidth()+controlFrame.getX(), controlFrame.getY());
-		projectionFrame.setVisible(true);
+		//projectionFrame.setVisible(true);
 	}
 }
