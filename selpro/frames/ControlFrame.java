@@ -24,24 +24,24 @@ import org.bytedeco.javacpp.opencv_core.Scalar;
 import org.bytedeco.javacpp.opencv_core.Size;
 import org.bytedeco.javacpp.opencv_imgproc;
 import org.bytedeco.javacpp.opencv_photo;
+import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.OpenCVFrameConverter;
 
 import selpro.CameraReader;
 
-public class ControlFrame extends JFrame implements CameraReader.FrameListener{
+public class ControlFrame extends CanvasFrame implements CameraReader.FrameListener{
 	private static final long serialVersionUID = 0L;
 	
 	//Main variables
 	private ProjectionFrame projectionFrame;
-	private DisplayFrame displayFrame;
 	private OpenCVFrameConverter.ToIplImage converter = new OpenCVFrameConverter.ToIplImage();
 	private static CvScalar threshMin = cvScalar(0, 0, 0, 0);//BGR-A
 	private static CvScalar threshMax = cvScalar(255, 255, 255, 0);//BGR-A
 	private DrawState drawState = DrawState.CHECKER;
 	private Rect projectionBounds = null;
 	private IplImage projectionMask = null;
-	
+
 	//Control booleans
 	private boolean findProjection = false;
 	private boolean saveMask = false;
@@ -50,33 +50,25 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 	private boolean AA = false;
 	
 
-	public ControlFrame(String title, ProjectionFrame projectionFrame, DisplayFrame displayFrame) {
+	public ControlFrame(String title, ProjectionFrame projectionFrame) {
 		super(title);
 		this.projectionFrame = projectionFrame;
-		this.displayFrame = displayFrame;
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(640, 480);
+		setSize(900, 700);
 		JPanel mainPanel = new JPanel();
-		JPanel buttonPanel = new JPanel();
-		JPanel sliderPanel = new JPanel();
-		buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
-		sliderPanel.setLayout(new BoxLayout(sliderPanel, BoxLayout.Y_AXIS));
-		add(mainPanel);
-		addButtons(buttonPanel);
-		addSliders(sliderPanel);
-		mainPanel.add(buttonPanel);
-		mainPanel.add(sliderPanel);
+		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+		mainPanel.add(super.canvas);
+		addButtons(mainPanel);
+		this.setContentPane(mainPanel);
 	}
 
 	private void addButtons(JPanel panel) {
-		JPanel topPanel = new JPanel();
-		JPanel midPanel = new JPanel();
-		JPanel botPanel = new JPanel();
-		panel.add(topPanel);
-		panel.add(midPanel);
-		panel.add(botPanel);
-
-
+		JPanel[] panels = new JPanel[4];
+		for (int i = 0; i < panels.length; i++) {
+			panels[i] = new JPanel();
+			panel.add(panels[i]);
+		}
+		
 		JButton findProjection_btn = new JButton("Find Projection (Black)");
 		findProjection_btn.addActionListener(new ActionListener() {
 
@@ -108,8 +100,8 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 		});
 
 		
-		topPanel.add(background_btn);
-		topPanel.add(findProjection_btn);
+		panels[0].add(background_btn);
+		panels[0].add(findProjection_btn);
 
 		JButton red_btn = new JButton("RED");
 		red_btn.addActionListener(new ActionListener() {
@@ -120,7 +112,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		midPanel.add(red_btn);
+		panels[1].add(red_btn);
 
 		JButton green_btn = new JButton("GREEN");
 		green_btn.addActionListener(new ActionListener() {
@@ -131,7 +123,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		midPanel.add(green_btn);
+		panels[1].add(green_btn);
 
 		JButton blue_btn = new JButton("BLUE");
 		blue_btn.addActionListener(new ActionListener() {
@@ -142,7 +134,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		midPanel.add(blue_btn);
+		panels[1].add(blue_btn);
 
 		JButton white_btn = new JButton("WHITE");
 		white_btn.addActionListener(new ActionListener() {
@@ -153,7 +145,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		midPanel.add(white_btn);
+		panels[1].add(white_btn);
 
 		JButton checker_btn = new JButton("CHECKER");
 		checker_btn.addActionListener(new ActionListener() {
@@ -164,7 +156,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		midPanel.add(checker_btn);
+		panels[1].add(checker_btn);
 
 		JButton applyMask_btn = new JButton("Apply Mask");
 		applyMask_btn.addActionListener(new ActionListener() {
@@ -175,7 +167,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		botPanel.add(applyMask_btn);
+		panels[2].add(applyMask_btn);
 		
 		JButton applyMaskAA_btn = new JButton("Apply Mask with AA");
 		applyMaskAA_btn.addActionListener(new ActionListener() {
@@ -186,7 +178,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		botPanel.add(applyMaskAA_btn);
+		panels[2].add(applyMaskAA_btn);
 		
 		JButton applyInvertedMask_btn = new JButton("Apply Inverted Mask");
 		applyInvertedMask_btn.addActionListener(new ActionListener() {
@@ -197,7 +189,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		botPanel.add(applyInvertedMask_btn);
+		panels[2].add(applyInvertedMask_btn);
 		
 		JButton clearMask_btn = new JButton("Clear Mask");
 		clearMask_btn.addActionListener(new ActionListener() {
@@ -208,8 +200,13 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			}
 		});
 
-		botPanel.add(clearMask_btn);
+		panels[2].add(clearMask_btn);
+		
+		panels[3].setLayout(new BoxLayout(panels[3], BoxLayout.Y_AXIS));
+		
+		addSliders(panels[3]);
 	}
+	
 	public void addSliders(JPanel panel){
 		JLabel red_lbl = new JLabel("Red: 0.0-255.0");
 		RangeSlider red_sld = new RangeSlider(0, 255, 0, 255);
@@ -258,25 +255,21 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			Mat gray_mat = new Mat();
 
 			//Show the original frame
-			displayFrame.showImage(img);
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
-
+			this.showImage(img);
 
 			//Change to grayscale
 			opencv_imgproc.cvtColor(img_mat, gray_mat, opencv_imgproc.CV_BGR2GRAY);
-			displayFrame.showImage(converter.convert(gray_mat));
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			this.showImage(converter.convert(gray_mat));
+			//try {Thread.sleep(1000);} catch (InterruptedException e) {}
 
 			//de-noise
 			opencv_photo.fastNlMeansDenoising(gray_mat, gray_mat);
-			displayFrame.showImage(converter.convert(gray_mat));
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			this.showImage(converter.convert(gray_mat));
 
 			//Smooth any jagged areas
 			IplImage gray_ipl = converter.convert(converter.convert(gray_mat));
 			opencv_imgproc.cvSmooth(gray_ipl, gray_ipl, opencv_imgproc.CV_MEDIAN, 3, 0, 0, 0);
-			displayFrame.showImage(converter.convert(gray_ipl));
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			this.showImage(converter.convert(gray_ipl));
 
 			//Threshold Filter
 			IplImage mask_ipl = opencv_core.cvCreateImage(opencv_core.cvGetSize(img_ipl), 8, 1);
@@ -288,14 +281,12 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			Mat final_mat = converter.convertToMat(converter.convert(mask_ipl));
 			opencv_core.bitwise_and(gray_mat, gray_mat, final_mat, converter.convertToMat(converter.convert(mask_ipl)));
 			gray_mat = final_mat;
-			displayFrame.showImage(converter.convert(gray_mat));
-			try {Thread.sleep(1000);} catch (InterruptedException e) {}
+			this.showImage(converter.convert(gray_mat));
 
 			//increase the contrast
 			if(!whiteBackground){
 				opencv_imgproc.equalizeHist(gray_mat, gray_mat);
-				displayFrame.showImage(converter.convert(gray_mat));
-				try {Thread.sleep(1000);} catch (InterruptedException e) {}
+				this.showImage(converter.convert(gray_mat));
 			}
 			
 			//Threshold Filter
@@ -304,15 +295,13 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 				mask_ipl = opencv_core.cvCreateImage(opencv_core.cvGetSize(img_ipl), 8, 1);
 				opencv_core.cvInRangeS(gray_ipl, cvScalar(10), cvScalar(255), mask_ipl);
 				gray_mat = converter.convertToMat(converter.convert(mask_ipl));
-				displayFrame.showImage(converter.convert(gray_mat));
-				try {Thread.sleep(1000);} catch (InterruptedException e) {}
+				this.showImage(converter.convert(gray_mat));
 			}
 
 			//Edge Detection
 			Mat bw_mat = new Mat();
 			opencv_imgproc.Canny(gray_mat, bw_mat, 30, 90, 3, true);
-			displayFrame.showImage(converter.convert(bw_mat));
-			try {Thread.sleep(2000);} catch (InterruptedException e) {}
+			this.showImage(converter.convert(bw_mat));
 
 			//Find the contours
 			MatVector contours = new MatVector();
@@ -370,7 +359,7 @@ public class ControlFrame extends JFrame implements CameraReader.FrameListener{
 			opencv_core.rectangle(final_mat, projectionBounds, new Scalar(0,255,255,0));
 		}
 
-		displayFrame.showImage(converter.convert(final_mat));
+		this.showImage(converter.convert(final_mat));
 		draw();
 	}
 
