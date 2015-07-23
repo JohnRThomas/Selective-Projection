@@ -2,38 +2,35 @@ package selpro;
 
 import java.util.ArrayList;
 
-import org.bytedeco.javacv.Frame;
-import org.bytedeco.javacv.FrameGrabber;
-import org.bytedeco.javacv.OpenCVFrameGrabber;
+import org.opencv.core.Mat;
+import org.opencv.videoio.VideoCapture;
 
 public class CameraReader extends Thread{
 	private ArrayList<FrameListener> listeners = new ArrayList<FrameListener>();
-	private volatile FrameGrabber grabber;
+	private volatile VideoCapture camera;
 	public CameraReader(){
-		grabber = new OpenCVFrameGrabber(0); 
-		try {
-			grabber.start();
+		camera = new VideoCapture(0); 
+		camera.open(0);
+		if(camera.isOpened()){
 			this.start();
-		} catch (FrameGrabber.Exception e) {
-			e.printStackTrace();
+		}else{
+			System.err.println("Failed to open camera 0!");
+			System.exit(1);
 		}
+
 	}
 
 
 	@Override
 	public void run(){
-		try {
-			Frame img;
-			while (true) {
-				img = grabber.grab();
-				for(FrameListener l : listeners){
-					if (img != null) {
-						l.processFrame(img);
-					}
+		Mat img = new Mat();
+		while (true) {
+			camera.read(img);
+			for(FrameListener l : listeners){
+				if (img != null) {
+					l.processFrame(img);
 				}
 			}
-		} catch (FrameGrabber.Exception e) {
-			e.printStackTrace();
 		}
 	}			
 
@@ -42,16 +39,14 @@ public class CameraReader extends Thread{
 	}
 
 	public interface FrameListener{
-		public void processFrame(Frame img);
+		public void processFrame(Mat img);
 	}
 
 	public void changeGrabber(int c){
-		OpenCVFrameGrabber temp = new OpenCVFrameGrabber(c);
-		try {
-			temp.start();
-			grabber = temp;
-		} catch (FrameGrabber.Exception e) {
-			e.printStackTrace();
+		VideoCapture temp = new VideoCapture(c);
+		temp.open(c);
+		if(temp.isOpened()){
+			camera = temp;
 		}
 	}
 }

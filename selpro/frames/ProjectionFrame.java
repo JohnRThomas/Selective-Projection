@@ -6,13 +6,11 @@ import java.awt.event.KeyEvent;
 
 import javax.swing.JFrame;
 
-import org.bytedeco.javacv.CanvasFrame;
-
 public class ProjectionFrame extends CanvasFrame{
 	private static final long serialVersionUID = 0L;
 	boolean maximized = false;
 	private Rectangle bounds;
-
+	
 	public ProjectionFrame(String title) {
 		super(title);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
